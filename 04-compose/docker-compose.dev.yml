@@ -1,0 +1,43 @@
+# ============================================================
+# DESENVOLVIMENTO — sobrescreve o docker-compose.yml
+#
+# Subir:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Diferenças em relação à produção:
+#   - bind mount do código (hot reload)
+#   - servidores de desenvolvimento em vez de gunicorn/nginx
+#   - porta do banco publicada (para conectar DBeaver/pgAdmin)
+# ============================================================
+
+services:
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev        # Dockerfile diferente em dev
+    ports:
+      - "5173:5173"                     # porta do Vite, não a 80 do nginx
+    volumes:
+      - ./frontend:/app                 # bind mount: editar reflete na hora
+      - /app/node_modules               # ⭐ protege o node_modules do container
+    environment:
+      CHOKIDAR_USEPOLLING: "true"       # detecta mudança dentro do volume
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"                     # exposta em dev, para testar com Postman
+    volumes:
+      - ./backend/src:/app/src          # bind mount do código
+    environment:
+      FLASK_DEBUG: "1"
+      LOG_LEVEL: DEBUG
+    command: flask --app src/app.py run --host 0.0.0.0 --port 8000 --reload
+
+  db:
+    ports:
+      - "5432:5432"                     # publicada SÓ em dev

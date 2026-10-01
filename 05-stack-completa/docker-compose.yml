@@ -1,0 +1,79 @@
+# ============================================================
+# STACK COMPLETA — frontend (nginx) + api (gunicorn) + db (postgres)
+#
+#   docker compose up -d --build
+#   abrir  http://localhost:3000
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # FRONTEND — o ÚNICO serviço com porta publicada.
+  # Serve os estáticos e faz proxy de /api/ para a api.
+  # ----------------------------------------------------------
+  frontend:
+    build: ./frontend
+    container_name: tarefas-front
+    ports:
+      - "${PORTA_FRONT:-3000}:80"          # HOST:CONTAINER
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - appnet
+
+  # ----------------------------------------------------------
+  # API — sem porta publicada. O nginx a alcança por dentro
+  # da rede, pelo nome "api".
+  # ----------------------------------------------------------
+  api:
+    build: ./backend
+    container_name: tarefas-api
+    environment:
+      # host "db" = NOME DO SERVIÇO, resolvido pelo DNS interno do Docker
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy         # espera o banco estar PRONTO
+    restart: unless-stopped
+    networks:
+      - appnet
+    # Para testar a API direto com Postman/curl, descomente:
+    # ports:
+    #   - "8000:8000"
+
+  # ----------------------------------------------------------
+  # BANCO — imagem oficial, volume nomeado, healthcheck.
+  # Sem porta publicada: só a api precisa alcançá-lo.
+  # ----------------------------------------------------------
+  db:
+    image: postgres:16
+    container_name: tarefas-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - dadospg:/var/lib/postgresql/data
+      # init.sql roda SÓ quando o volume está vazio.
+      # Para reaplicar: docker compose down -v
+      - ./banco/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - appnet
+
+volumes:
+  dadospg:
+
+networks:
+  appnet:
+    driver: bridge

@@ -1,0 +1,20 @@
+# ============================================================
+# BACKEND (desenvolvimento) — Flask com --reload
+# O código vem por BIND MOUNT no compose de dev
+# ============================================================
+
+FROM python:3.11
+
+ENV PYTHONUNBUFFERED=1 \
+    FLASK_DEBUG=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Sem COPY do código: vem por bind mount, para editar e ver na hora.
+
+EXPOSE 8000
+
+CMD ["flask", "--app", "src/app.py", "run", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarefas — stack em Docker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Tarefas</h1>
+      <p class="sub">Front (nginx) &rarr; API (gunicorn) &rarr; Postgres, tudo em Docker</p>
+    </header>
+
+    <section class="status" id="status">
+      <span class="pill" id="pill-api">API: verificando…</span>
+      <span class="pill" id="pill-host">host: —</span>
+    </section>
+
+    <form id="form">
+      <input id="titulo" type="text" placeholder="O que precisa ser feito?" maxlength="200" required>
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <ul id="lista"></ul>
+    <p class="vazio" id="vazio" hidden>Nenhuma tarefa ainda.</p>
+    <p class="erro" id="erro" hidden></p>
+
+    <footer>
+      <p>
+        O JavaScript desta página roda no <strong>seu navegador</strong>, que está
+        <strong>fora</strong> do Docker. Por isso ele chama <code>/api/...</code> —
+        caminho relativo. O nginx recebe e encaminha para <code>http://api:8000</code>
+        por dentro da rede do Docker.
+      </p>
+      <p>
+        É isso que elimina o CORS e dispensa configurar a URL da API.
+      </p>
+    </footer>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# ============================================================
+# DESENVOLVIMENTO — sobrescreve o docker-compose.yml
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Diferenças: bind mount do código, flask --reload, portas da api
+# e do banco publicadas para eu inspecionar.
+# ============================================================
+
+services:
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev           # Dockerfile diferente em dev
+    ports:
+      - "8000:8000"                        # exposta para testar com Postman
+    volumes:
+      - ./backend/src:/app/src             # bind mount: editar reflete na hora
+    environment:
+      FLASK_DEBUG: "1"
+      LOG_LEVEL: DEBUG
+
+  frontend:
+    volumes:
+      # Front estático: basta montar os arquivos, sem rebuild
+      - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
+      - ./frontend/app.js:/usr/share/nginx/html/app.js:ro
+      - ./frontend/style.css:/usr/share/nginx/html/style.css:ro
+
+  db:
+    ports:
+      - "5432:5432"                        # publicada SÓ em dev (DBeaver/pgAdmin)

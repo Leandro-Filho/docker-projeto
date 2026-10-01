@@ -1,0 +1,89 @@
+:root {
+  --bg: #0f1115;
+  --card: #171a21;
+  --borda: #272b35;
+  --texto: #e6e8ee;
+  --fraco: #8b92a3;
+  --acento: #5b9dff;
+  --ok: #3ecf8e;
+  --erro: #ff6b6b;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --borda: #e2e5ea;
+    --texto: #1a1d24;
+    --fraco: #6b7280;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px;
+  background: var(--bg);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main { max-width: 640px; margin: 0 auto; }
+
+header h1 { margin: 0 0 4px; font-size: 1.75rem; letter-spacing: -0.02em; }
+.sub { margin: 0 0 20px; color: var(--fraco); font-size: 0.9rem; }
+
+.status { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.pill {
+  font-size: 0.78rem; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--borda); background: var(--card); color: var(--fraco);
+}
+.pill.ok { color: var(--ok); border-color: var(--ok); }
+.pill.ruim { color: var(--erro); border-color: var(--erro); }
+
+form { display: flex; gap: 8px; margin-bottom: 20px; }
+
+input[type=text] {
+  flex: 1; padding: 11px 14px; border-radius: 8px;
+  border: 1px solid var(--borda); background: var(--card); color: var(--texto);
+  font-size: 0.95rem;
+}
+input[type=text]:focus { outline: 2px solid var(--acento); outline-offset: -1px; }
+
+button {
+  padding: 11px 18px; border-radius: 8px; border: 0; cursor: pointer;
+  background: var(--acento); color: #fff; font-size: 0.95rem; font-weight: 500;
+}
+button:hover { filter: brightness(1.1); }
+
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 8px;
+  border: 1px solid var(--borda); background: var(--card);
+}
+li.feita .titulo { text-decoration: line-through; color: var(--fraco); }
+
+li .titulo { flex: 1; }
+li .data { font-size: 0.72rem; color: var(--fraco); }
+
+.acao {
+  background: none; border: 1px solid var(--borda); color: var(--fraco);
+  padding: 5px 10px; font-size: 0.78rem; border-radius: 6px;
+}
+.acao:hover { color: var(--texto); filter: none; }
+.acao.remover:hover { color: var(--erro); border-color: var(--erro); }
+
+.vazio, .erro { color: var(--fraco); font-size: 0.9rem; text-align: center; padding: 20px 0; }
+.erro { color: var(--erro); }
+
+footer {
+  margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--borda);
+  color: var(--fraco); font-size: 0.82rem;
+}
+footer code {
+  background: var(--card); padding: 1px 5px; border-radius: 4px;
+  border: 1px solid var(--borda); font-size: 0.78rem;
+}
