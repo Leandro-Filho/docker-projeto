@@ -1,7 +1,14 @@
 # Stack completa — front + back + banco em Docker
 
-Projeto **funcional** para rodar, estudar e usar como base.
-Front em HTML/CSS/JS puro servido por nginx, API em Flask + gunicorn, banco Postgres.
+Projeto **funcional** com **4 serviços** para rodar, estudar e usar como base:
+`frontend` (nginx), `api` (Flask/gunicorn), `processador` (Flask/gunicorn) e `db` (Postgres).
+
+O serviço **`processador`** existe para demonstrar o que a ponderada vai avaliar:
+**comunicação SERVIÇO → SERVIÇO**. A `api` o chama por HTTP, pelo nome do serviço, e ele
+não publica porta nenhuma.
+
+> ⭐ Para testar a comunicação, veja [../10-teste-de-comunicacao/](../10-teste-de-comunicacao/)
+> e rode `../10-teste-de-comunicacao/teste-comunicacao.sh`.
 
 > Se o seu projeto usa React/Vue/Svelte, o Dockerfile do front muda: precisa de um estágio de
 > build (`npm run build`). Veja `../02-frontend/react-vite-nginx.Dockerfile`.
@@ -42,7 +49,7 @@ docker compose down -v          # APAGA os dados (e faz o init.sql rodar de novo
                       │  http://localhost:3000
                       ▼
        ┌──────────────────────────────────┐
-       │  frontend : nginx  (porta 80)    │ ← única porta publicada
+       │  frontend : nginx  (porta 80)    │ ← ÚNICA porta publicada
        │                                  │
        │   /          → index.html        │
        │   /api/...   → proxy_pass ───────┼───┐
@@ -50,14 +57,25 @@ docker compose down -v          # APAGA os dados (e faz o init.sql rodar de novo
                                               ▼
                         ┌──────────────────────────────┐
                         │  api : gunicorn  (8000)      │
-                        └──────────────┬───────────────┘
-                                       │  db:5432
-                                       ▼
-                        ┌──────────────────────────────┐
-                        │  db : postgres  (5432)       │
-                        │  volume: dadospg             │
-                        └──────────────────────────────┘
+                        └────────┬──────────────┬──────┘
+                 processador:8001│              │db:5432
+                      (HTTP)     │              │(SQL)
+                                 ▼              ▼
+              ┌────────────────────────┐  ┌──────────────────┐
+              │ processador : gunicorn │  │  db : postgres   │
+              │        (8001)          │  │     (5432)       │
+              │   sem porta publicada  │  │ volume: dadospg  │
+              └────────────────────────┘  └──────────────────┘
 ```
+
+**Os três tipos de comunicação demonstrados:**
+
+| Tipo | Caminho | Endereço usado |
+|---|---|---|
+| **Externa** | navegador → frontend | `localhost:3000` (porta publicada) |
+| **Interna (proxy)** | frontend → api | `http://api:8000` (nome do serviço) |
+| **Serviço → serviço** ⭐ | api → processador | `http://processador:8001` (nome do serviço) |
+| **Interna (SQL)** | api → db | `db:5432` (nome do serviço) |
 
 ## Por que foi feito assim
 
@@ -97,11 +115,57 @@ docker compose down -v          # APAGA os dados (e faz o init.sql rodar de novo
 | 12 | Ver o shutdown gracioso | `docker compose logs api` depois de um `stop` | a linha "recebi sinal 15, encerrando" |
 | 13 | Reaplicar o `init.sql` | editar `banco/init.sql` → `down -v` → `up -d` | os novos dados aparecem |
 | 14 | Confirmar que o banco não é exposto | `curl localhost:5432` (em produção) | sem resposta — não está publicado |
+| 15 | ⭐ Provar serviço → serviço | `docker compose exec api python -c "import urllib.request;print(urllib.request.urlopen('http://processador:8001/api/health').read())"` | responde: a api alcança o processador pelo nome |
+| 16 | ⭐ O teste negativo | a mesma chamada com `localhost:8001` | **falha** — e é isso que prova o isolamento de rede |
+| 17 | Ver o relatório de diagnóstico | `curl localhost:3000/api/comunicacao` | veredito "TODOS OS SERVICOS SE COMUNICAM" |
 
 O **experimento 5** é o mais importante: ele prova com os próprios olhos a diferença entre a rede
 do Docker e o navegador. Vale citar no README da ponderada.
 
 ---
+
+## ⭐ Testar a comunicação entre os serviços
+
+```bash
+# o relatório completo, rodado de DENTRO do container da api
+curl -s http://localhost:3000/api/comunicacao | python3 -m json.tool
+
+# a cadeia inteira: front -> api -> processador -> db
+curl -X POST http://localhost:3000/api/analisar \
+  -H "Content-Type: application/json" \
+  -d '{"valores":[10,12,9,30,11]}'
+```
+
+A resposta do segundo traz **`processado_por`** e **`recebido_por`** — hostnames **diferentes**,
+provando que dois containers distintos participaram da mesma requisição.
+
+Ou rode o script completo (8 provas):
+```bash
+../10-teste-de-comunicacao/teste-comunicacao.sh
+```
+
+### O serviço `testador` (sobe só sob demanda)
+
+```bash
+docker compose --profile teste run --rm testador
+```
+
+Ele é um container `curlimages/curl` que entra na rede `appnet` e chama os outros serviços
+**pelos nomes**. Serve para quando você não tem `curl` na máquina, quando a imagem slim da API
+não tem `curl`, ou quando não quer publicar porta só para testar. Por causa do
+`profiles: ["teste"]`, ele **não sobe** no `docker compose up` normal.
+
+### O teste negativo dinâmico (a prova mais forte)
+
+```bash
+docker compose stop processador
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:3000/api/analisar \
+  -H "Content-Type: application/json" -d '{"valores":[1,2,3]}'   # esperado: 502/503
+docker compose start processador
+```
+
+Se continuasse devolvendo `200` com o `processador` parado, a resposta não vinha dele —
+seria dado fixo. É isso que comprova que a comunicação é real.
 
 ## Testar a API direto
 

@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "Ponderada Docker - teste de comunicacao",
+    "description": "Collection para PROVAR que os servicos da stack se comunicam.\n\nOrdem sugerida: 1 -> 2 -> 3 -> 4 -> 5.\nAs requisicoes 8 e 9 sao TESTES NEGATIVOS: elas DEVEM falhar, porque\no processador e o banco nao publicam porta em producao.\n\nVariavel base_url = http://localhost:3000 (ajuste se publicou outra porta).\n\nATENCAO: o Postman roda FORA do Docker, portanto nao resolve nomes de\nservico como http://api:8000. Para a prova direta da comunicacao interna,\nuse a requisicao 3 (/api/comunicacao), que roda os testes de DENTRO do\ncontainer e devolve o relatorio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health da API (via proxy do front)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        },
+        "description": "PROVA: o front esta publicado e o nginx alcanca a API por dentro da rede."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Info - qual container respondeu",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/info",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "info"
+          ]
+        },
+        "description": "Mostra hostname (namespace UTS) e PID. A app e o PID 1 do container."
+      },
+      "response": []
+    },
+    {
+      "name": "3. RELATORIO DE COMUNICACAO (a prova principal)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/comunicacao",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "comunicacao"
+          ]
+        },
+        "description": "Roda de DENTRO do container da API: DNS do processador, DNS do db, HTTP para o processador, SQL no banco, e o TESTE NEGATIVO com localhost. Veredito no campo resumo.veredito."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Analisar - cadeia front>api>processador>db",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/analisar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "analisar"
+          ]
+        },
+        "description": "A API chama o PROCESSADOR por HTTP (pelo nome do servico) e grava o resultado no banco. A resposta traz processado_por e recebido_por: hostnames DIFERENTES provam que dois containers distintos participaram.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valores\": [\n    10,\n    12,\n    9,\n    30,\n    11\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Listar analises (persistiu?)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/analises",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "analises"
+          ]
+        },
+        "description": "PROVA de ponta a ponta: o dado saiu do cliente, passou pela API, foi processado por outro container e gravado num terceiro."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Listar tarefas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/tarefas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "tarefas"
+          ]
+        },
+        "description": "CRUD de leitura no banco."
+      },
+      "response": []
+    },
+    {
+      "name": "7. Criar tarefa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/tarefas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "tarefas"
+          ]
+        },
+        "description": "CRUD de escrita no banco.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Tarefa criada pelo Postman\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. NEGATIVO - processador direto (DEVE FALHAR)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8001/api/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8001",
+          "path": [
+            "api",
+            "health"
+          ]
+        },
+        "description": "O processador NAO publica porta em producao, logo nao deve ser alcancavel da minha maquina. Se responder, voce publicou uma porta desnecessaria."
+      },
+      "response": []
+    },
+    {
+      "name": "9. NEGATIVO - banco por HTTP (DEVE FALHAR)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5432/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5432",
+          "path": []
+        },
+        "description": "O banco tambem nao publica porta em producao."
+      },
+      "response": []
+    }
+  ]
+}

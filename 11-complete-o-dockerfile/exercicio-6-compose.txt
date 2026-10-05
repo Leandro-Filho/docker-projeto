@@ -1,0 +1,72 @@
+# ============================================================
+# EXERCÍCIO 6 (médio) — docker-compose com 3 serviços
+#
+# Cenário: front (nginx) + api (Flask) + db (Postgres).
+# Requisitos:
+#   - só o front é acessível de fora, na porta 3000
+#   - a api alcança o banco pelo NOME DO SERVIÇO
+#   - os dados do banco sobrevivem a docker compose down
+#   - a api só sobe depois que o banco estiver PRONTO
+#   - a rede é declarada explicitamente
+#
+# Preencha as 9 lacunas.
+# ============================================================
+
+services:
+
+  frontend:
+    build: ./frontend
+    # [ ? 1 ] — publique a porta 80 do container na porta 3000 do host
+    ____________________
+      ____________________
+    depends_on:
+      - api
+    networks:
+      - appnet
+
+  api:
+    build: ./backend
+    environment:
+      # [ ? 2 ] — a connection string. Qual host usar aqui?
+      #           NÃO é localhost nem um IP.
+      DATABASE_URL: postgresql://app:senha@____________:5432/meubanco
+    # [ ? 3 ] — a api deve esperar o banco estar SAUDÁVEL, não só iniciado
+    depends_on:
+      db:
+        ____________________
+    networks:
+      - appnet
+    # [ ? 4 ] — a api precisa publicar porta? Responda sim ou não e por quê:
+    #           ______________________________________________________
+
+  db:
+    # [ ? 5 ] — imagem oficial do Postgres 16, versão fixada
+    ____________________
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: senha
+      POSTGRES_DB: meubanco
+    # [ ? 6 ] — monte um named volume no caminho de dados do Postgres
+    volumes:
+      - ____________________
+    # [ ? 7 ] — healthcheck que testa se o Postgres aceita conexão
+    healthcheck:
+      test: ____________________
+      interval: 5s
+      retries: 5
+    networks:
+      - appnet
+
+# [ ? 8 ] — declare o named volume usado acima
+____________________
+  ____________________
+
+# [ ? 9 ] — declare a rede usada pelos três serviços
+____________________
+  ____________________
+
+
+# PERGUNTAS DE FECHAMENTO:
+#   1. Por que a api alcança o db pelo nome e não pelo IP? ____________
+#   2. O que acontece com os dados se eu rodar "down -v"? _____________
+#   3. Como eu PROVO que a api fala com o db?             _____________

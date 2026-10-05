@@ -110,3 +110,31 @@ ports:
 ```
 
 Sempre rode `docker compose config` para conferir antes de subir.
+
+---
+
+## `profiles:` — serviços que só sobem quando eu pedir
+
+```yaml
+  testador:
+    image: curlimages/curl:latest
+    profiles: ["teste"]
+    networks: [appnet]
+```
+
+```bash
+docker compose up -d                              # o testador NÃO sobe
+docker compose --profile teste run --rm testador  # agora sim, e sai quando terminar
+```
+
+Para que serve: serviços **auxiliares** que não fazem parte da aplicação — teste de rede,
+seed de banco, migração, backup, geração de relatório. Eles ficam declarados no compose
+(versionados, documentados, na rede certa) sem poluir o `up` do dia a dia.
+
+É a resposta certa para *"como rodo um comando pontual dentro da rede da stack?"*.
+Alternativa sem compose, para quando a rede já existe:
+
+```bash
+docker run --rm --network <pasta>_appnet curlimages/curl -sS http://api:8000/api/health
+```
+

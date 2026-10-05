@@ -1,0 +1,55 @@
+### ============================================================
+### Requisições para testar a comunicação entre os serviços
+### Use com a extensão REST Client do VS Code ("Send Request").
+### Vantagem: é texto, fica versionado no Git.
+### ============================================================
+
+@base = http://localhost:3000
+
+### 1. Saúde da API, atravessando o proxy do front
+# PROVA: o front está publicado e o nginx alcança a API por dentro da rede
+GET {{base}}/api/health
+
+### 2. Quem respondeu — hostname e PID do container da API
+# PROVA: namespace UTS (hostname próprio) e PID (a app é o PID 1)
+GET {{base}}/api/info
+
+### 3. ⭐ RELATÓRIO COMPLETO DE COMUNICAÇÃO
+# Roda, de DENTRO do container da API: DNS do processador, DNS do db,
+# HTTP para o processador, SQL no banco, e o TESTE NEGATIVO com localhost.
+# É a prova mais completa numa única chamada.
+GET {{base}}/api/comunicacao
+
+### 4. ⭐ CADEIA INTEIRA: front -> api -> processador -> banco
+# A resposta traz "processado_por" (container do processador) e
+# "recebido_por" (container da API). Hostnames DIFERENTES provam que
+# dois containers distintos participaram.
+POST {{base}}/api/analisar
+Content-Type: application/json
+
+{
+  "valores": [10, 12, 9, 30, 11]
+}
+
+### 5. As análises foram persistidas no banco?
+GET {{base}}/api/analises
+
+### 6. CRUD — listar tarefas
+GET {{base}}/api/tarefas
+
+### 7. CRUD — criar tarefa (escrita no banco)
+POST {{base}}/api/tarefas
+Content-Type: application/json
+
+{
+  "titulo": "Tarefa criada pelo teste HTTP"
+}
+
+### 8. TESTE NEGATIVO (de fora): o processador NÃO deve ser alcançável
+# Em produção ele não publica porta. Esta requisição DEVE falhar.
+# Se responder, você publicou uma porta desnecessária.
+GET http://localhost:8001/api/health
+
+### 9. TESTE NEGATIVO (de fora): o banco NÃO deve ser alcançável por HTTP
+# Também não publica porta em produção.
+GET http://localhost:5432

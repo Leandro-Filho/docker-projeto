@@ -56,6 +56,15 @@
 - [ ] Senhas via `${VARIAVEL}` do `.env`
 - [ ] `.env` no `.gitignore` e `.env.example` no Git
 
+## Verificação da comunicação (o que ele vai checar)
+
+- [ ] Existem **várias imagens** construídas (uma por serviço que eu construo)
+- [ ] Os serviços se alcançam **pelo nome do serviço**, nunca por IP nem `localhost`
+- [ ] Só os serviços que precisam de acesso externo publicam porta
+- [ ] Existe **pelo menos um teste** documentado da comunicação
+- [ ] Sei **explicar** por que `localhost` não funciona entre containers
+- [ ] Sei **explicar** o que o Postman alcança e o que ele não alcança
+
 ## Verificação do frontend (as armadilhas)
 
 - [ ] O JS **não** chama `api:8000` (o navegador não resolve)

@@ -23,3 +23,21 @@ INSERT INTO tarefas (titulo, concluida) VALUES
     ('Amarrar tudo no docker-compose',    FALSE),
     ('Escrever o README com minhas palavras', FALSE)
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- Tabela usada pelo endpoint /api/analisar
+-- Guarda o resultado que o servico PROCESSADOR devolveu para a API.
+-- Serve de prova de que os dois saltos funcionaram:
+--   api -> processador (HTTP)  e  api -> db (SQL)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS analises (
+    id             SERIAL PRIMARY KEY,
+    n              INTEGER      NOT NULL,
+    media          NUMERIC(14,4) NOT NULL,
+    minimo         NUMERIC(14,4) NOT NULL,
+    maximo         NUMERIC(14,4) NOT NULL,
+    desvio         NUMERIC(14,4) NOT NULL,
+    processado_por VARCHAR(100),   -- hostname do container que processou
+    criada_em      TIMESTAMP    NOT NULL DEFAULT NOW()
+);

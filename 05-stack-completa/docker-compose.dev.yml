@@ -28,6 +28,12 @@ services:
       - ./frontend/app.js:/usr/share/nginx/html/app.js:ro
       - ./frontend/style.css:/usr/share/nginx/html/style.css:ro
 
+  processador:
+    ports:
+      - "8001:8001"                        # publicada SÓ em dev, para testar isolado
+    volumes:
+      - ./processador/src:/app/src         # bind mount do código
+
   db:
     ports:
       - "5432:5432"                        # publicada SÓ em dev (DBeaver/pgAdmin)

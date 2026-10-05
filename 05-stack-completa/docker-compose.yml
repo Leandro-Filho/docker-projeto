@@ -46,6 +46,81 @@ services:
     #   - "8000:8000"
 
   # ----------------------------------------------------------
+  # PROCESSADOR — segundo backend, chamado PELA API.
+  # Sem porta publicada: só é alcançável de dentro da rede.
+  # É este serviço que prova a comunicação SERVIÇO -> SERVIÇO.
+  # ----------------------------------------------------------
+  processador:
+    build: ./processador
+    container_name: tarefas-processador
+    environment:
+      APP_VERSION: "1.0.0"
+      PORT: "8001"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    networks:
+      - appnet
+    # Para testar este serviço isoladamente com Postman, descomente:
+    # ports:
+    #   - "8001:8001"
+
+  # ----------------------------------------------------------
+  # TESTADOR — serviço de TESTE, controlado por "profiles".
+  #
+  # Não sobe com "docker compose up". Só sobe quando você pede:
+  #
+  #   docker compose --profile teste run --rm testador
+  #
+  # Para que serve: ele entra NA MESMA REDE dos outros serviços e
+  # prova a comunicação de dentro, usando os NOMES dos serviços.
+  # É a resposta para "não tenho curl instalado na minha máquina"
+  # e para "não quero publicar porta só para testar".
+  # ----------------------------------------------------------
+  testador:
+    image: curlimages/curl:latest
+    container_name: tarefas-testador
+    profiles: ["teste"]                    # <- não sobe no up normal
+    networks:
+      - appnet
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        falhas=0
+        checa() {
+          # $1 = descricao   $2 = url
+          codigo=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$$2" 2>/dev/null)
+          if [ "$$codigo" = "200" ]; then
+            echo "  OK      $$1  (HTTP $$codigo)"
+          else
+            echo "  FALHOU  $$1  (HTTP $$codigo)"
+            falhas=$$((falhas+1))
+          fi
+        }
+        echo "=== testador: rodando DENTRO da rede appnet ==="
+        checa "frontend por nome   -> http://frontend/nginx-health" "http://frontend/nginx-health"
+        checa "api por nome        -> http://api:8000/api/health"   "http://api:8000/api/health"
+        checa "processador por nome-> http://processador:8001/api/health" "http://processador:8001/api/health"
+        echo "--- teste NEGATIVO (tem de falhar) ---"
+        codigo=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://localhost:8000/api/health 2>/dev/null)
+        if [ "$$codigo" = "200" ]; then
+          echo "  FALHOU  localhost:8000 respondeu -- isso NAO deveria acontecer"
+          falhas=$$((falhas+1))
+        else
+          echo "  OK      localhost:8000 nao responde (HTTP $$codigo)"
+          echo "          prova que 'localhost' = o PROPRIO container, nao a api"
+        fi
+        echo "--- cadeia api -> processador ---"
+        corpo=$$(curl -s --max-time 10 -X POST http://api:8000/api/analisar \
+                 -H 'Content-Type: application/json' \
+                 -d '{"valores":[10,12,9,30,11]}' 2>/dev/null)
+        echo "$$corpo" | grep -q '"media"' \
+          && echo "  OK      api chamou o processador e devolveu media" \
+          || { echo "  FALHOU  cadeia api->processador"; falhas=$$((falhas+1)); }
+        echo "$$corpo"
+        echo "=== falhas: $$falhas ==="
+        exit $$falhas
+
+  # ----------------------------------------------------------
   # BANCO — imagem oficial, volume nomeado, healthcheck.
   # Sem porta publicada: só a api precisa alcançá-lo.
   # ----------------------------------------------------------
